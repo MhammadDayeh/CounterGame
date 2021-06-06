@@ -1,0 +1,169 @@
+package countgame;
+
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import java.awt.GridLayout;
+import java.awt.Color;
+import javax.swing.JPanel;
+import javax.swing.JButton;
+import java.util.ArrayList;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.util.Random;
+
+public class Game implements ActionListener {
+	private JFrame gameFrame;
+	private JPanel gamePanel, statusPanel;
+	private ArrayList<JButton> buttons;
+	private ArrayList<Integer> randomNumbers;
+	private static Random generator;
+	private static int chances = 0;
+	private JLabel timerLabel;
+	private Timer timer;
+	private volatile boolean stopTimer = true;
+
+	Game() {
+		timer = new Timer();
+
+		// ====== random ======
+		generator = new Random();
+
+		// ====== randomNumbers ======
+		randomNumbers = returnRandomNumberArray();
+
+		// ====== buttons ======
+		buttons = new ArrayList<JButton>(16);
+		for (int i = 0; i < 16; i++) {
+			buttons.add(new JButton(Integer.toString(randomNumbers.get(i))));
+		}
+
+		for (JButton button : buttons) { // adding actionListeners and font to buttons
+			button.addActionListener(this); 
+			button.setFont(GUI.font);
+			button.setBackground(Color.WHITE);
+		}
+
+		// ====== gameFrame ======
+		gameFrame = new JFrame("Game");
+		gameFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+		gameFrame.setLayout(null);
+		gameFrame.getContentPane().setBackground(Color.GRAY);
+		gameFrame.setSize(500, 555);
+		gameFrame.setResizable(false);
+
+		// ====== gamePanel ======
+		gamePanel = new JPanel();
+		gamePanel.setBounds(10, 10, 465, 340);
+		gamePanel.setLayout(new GridLayout(4, 4));
+		gamePanel.setBackground(Color.GRAY);
+		gameFrame.add(gamePanel);
+
+		// ====== statusPanel ======
+		statusPanel = new JPanel();
+		statusPanel.setBounds(10, 355, 465, 150);
+		statusPanel.setBackground(Color.RED);
+		statusPanel.setLayout(new GridLayout());
+		gameFrame.add(statusPanel);
+
+		// ====== timerLabel ======
+		timerLabel = new JLabel("Timer: 0:0:0");
+		timerLabel.setFont(GUI.font);
+		statusPanel.add(timerLabel);
+
+		new Thread(new Runnable() {
+			public void run() {
+				while (true) {
+					timer.startTimer();
+					while (!stopTimer) {
+						timerLabel.setText(
+						  String.valueOf(timer.getTime()[0]) + ":"
+						+ String.valueOf(timer.getTime()[1]) + ":"
+						+ String.valueOf(timer.getTime()[2])
+						);
+					}
+				}
+			}
+		}).start();		
+
+		for (int i = 0; i < 16; i++) { // adding buttons to gamePanel
+			gamePanel.add(buttons.get(i));
+		}
+		
+		gameFrame.setVisible(true); // setting gameFrame visible
+	}
+
+	private static ArrayList<Integer> returnRandomNumberArray() {
+		ArrayList<Integer> result = new ArrayList<Integer>();
+		result.add(generator.nextInt(16) + 1);
+		
+		ArrayList<Integer> used = new ArrayList<Integer>();
+		used.add(result.get(0));
+		
+		int checkedTimes = 0;
+		while (true) {
+			boolean passed = true;
+			
+			int rand = generator.nextInt(16) + 1;
+			for (int i = 0; i < used.size(); i++) {
+				if (rand == used.get(i)) passed = false;
+				System.out.println("\u001b[32m" + "CHECKED" + i + "\u001b[0m");
+				if (passed) 
+					System.out.println("\u001b[32m" + "passed" + "\u001b[0m");
+				else
+					System.out.println("\u001b[31m" + "not passed" + "\u001b[0m");
+			}
+
+			if (passed) {
+				result.add(rand);
+				used.add(rand);
+			}
+
+			if (result.size() == 16) {
+				System.out.println("Broke at used:" + used.size());
+				System.out.println("Broke at result:" + result.size());
+				System.out.println("Checked " + checkedTimes + " times.");
+				break; 
+			} else {
+				checkedTimes++;
+				continue;
+			}
+		}
+		
+		return result;
+	}
+	
+	ArrayList<Integer> userInput = new ArrayList<Integer>(16);
+
+	public void actionPerformed(ActionEvent ae) {
+		stopTimer = false;	
+		JButton pressedButton = null;
+		
+		for (int i = 0; i < buttons.size(); i++) {
+			if (ae.getActionCommand() == buttons.get(i).getText()) {
+				pressedButton = buttons.get(i);
+				break;
+			}
+		}	
+		
+		if (Integer.parseInt(pressedButton.getText()) == 1) {
+			pressedButton.setBackground(Color.GREEN);
+			userInput.add(Integer.parseInt(pressedButton.getText()));
+		} else if (userInput.contains(Integer.parseInt(pressedButton.getText()) - 1)) {
+			pressedButton.setBackground(Color.GREEN);
+			userInput.add(Integer.parseInt(pressedButton.getText()));
+		} else {
+			pressedButton.setBackground(Color.RED);
+			chances++;
+		}
+
+		if (chances == 3) { 
+			System.out.println("YOU LOST");
+			stopTimer = true;
+		}
+
+		if (userInput.size() == 16) {
+			System.out.println("U WON");
+			stopTimer = true;
+		}
+	}
+}
